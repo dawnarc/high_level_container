@@ -13,10 +13,11 @@ namespace dawnarc
 	class var_buffer
 	{
 	public:
-		var_buffer() = delete;
+
+		var_buffer();
 
 		//开辟一端初始化空间，之后逐个Add变量
-		var_buffer(int capacity = 200);
+		var_buffer(int capacity);
 
 		//用data数据填充，之后逐个Get变量
 		var_buffer(char* data, int size);

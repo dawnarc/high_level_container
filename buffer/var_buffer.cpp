@@ -1,6 +1,6 @@
 /**
 * Desc: variables buffer
-* Author: Wang Aiguo
+* Author: dawnarc
 * Date: 2016-05-21
 * Time: 14:49
 */
@@ -11,8 +11,15 @@
 
 using namespace dawnarc;
 
-int var_buffer::MIN_CAPACITY = 16;
+int var_buffer::MIN_CAPACITY = 32;
 int var_buffer::MAX_CAPACITY = 2048;
+
+var_buffer::var_buffer() : m_capacity(32)
+{
+	m_data = new char[m_capacity];
+	m_write = m_data;
+	m_read = m_data;
+}
 
 var_buffer::var_buffer(int capacity)
 {
@@ -71,6 +78,7 @@ bool var_buffer::add_float(float value)
 
 	((float*)m_write)[0] = value;
 	m_write += 4;
+	return true;
 }
 
 bool var_buffer::add_string(const char *value)
