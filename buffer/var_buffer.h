@@ -16,13 +16,13 @@ namespace dawnarc
 
 		var_buffer();
 
+		var_buffer(const var_buffer& buf);
+
 		//开辟一端初始化空间，之后逐个Add变量
 		var_buffer(int capacity);
 
 		//用data数据填充，之后逐个Get变量
-		var_buffer(char* data, int size);
-
-		var_buffer(const var_buffer&) = delete;
+		var_buffer(const char* data, int size);
 
 		~var_buffer();
 
@@ -32,12 +32,13 @@ namespace dawnarc
 		bool add_bytes(const char *value, int size);
 		bool add_widestr(const wchar_t *value);
 
-		int int_();
-		float float_();
-		char* string_(int &len);
-		const char* bytes_(int& size);
-		char *data();
-		size_t size();
+		int int_() const;
+		float float_() const;
+		const char* string_(int &len) const;
+		const char* string_() const;
+		const char* bytes_(int& size) const;
+		const char *data() const;
+		size_t size() const;
 		char* now_data();
 
 		//if want to re-add value after get value, must invoke flush() to clean read and write sign.
@@ -60,7 +61,7 @@ namespace dawnarc
 		int m_capacity;
 		char *m_data;
 		char *m_write;
-		char *m_read;
+		mutable char *m_read;
 	};
 
 	inline var_buffer& operator<<(var_buffer & v, int value)
