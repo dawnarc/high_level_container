@@ -1,35 +1,29 @@
-/**
-* Desc: variables buffer
-* Author: dawnarc
-* Date: 2016-05-21
-* Time: 14:49
-*/
 
-#include "var_buffer.h"
+#include "buffer_builder.h"
 #include <string.h>
 
-using namespace dawnarc;
+using namespace utils;
 
-int var_buffer::MIN_CAPACITY = 32;
-int var_buffer::MAX_CAPACITY = 2048;
+int buffer_builder::MIN_CAPACITY = 0;
+int buffer_builder::MAX_CAPACITY = 1024 * 1024;
 
-var_buffer::var_buffer() : m_capacity(MIN_CAPACITY)
+buffer_builder::buffer_builder() : m_capacity(MIN_CAPACITY)
 {
 	m_data = new char[m_capacity];
 	m_write = m_data;
 	m_read = m_data;
 }
 
-var_buffer::var_buffer(const var_buffer& buf)
+buffer_builder::buffer_builder(const buffer_builder& buf)
 {
-	m_capacity = buf.size();
+	m_capacity = buf.full_size();
 	m_data = new char[m_capacity];
 	memcpy(m_data, buf.m_data, m_capacity);
 	m_write = buf.m_write;
 	m_read = buf.m_read;
 }
 
-var_buffer::var_buffer(int capacity)
+buffer_builder::buffer_builder(int capacity)
 {
 	m_capacity = capacity <= MIN_CAPACITY ? MIN_CAPACITY : (capacity > MAX_CAPACITY ? MAX_CAPACITY : capacity);
 	m_data = new char[m_capacity];
@@ -37,7 +31,7 @@ var_buffer::var_buffer(int capacity)
 	m_read = m_data;
 }
 
-var_buffer::var_buffer(const char* data, int size)
+buffer_builder::buffer_builder(const char* data, int size)
 {
 	if (size <= 0 || size > MAX_CAPACITY)
 	{
@@ -52,12 +46,12 @@ var_buffer::var_buffer(const char* data, int size)
 	m_read = m_data;
 }
 
-var_buffer::~var_buffer()
+buffer_builder::~buffer_builder()
 {
 	delete[] m_data;
 }
 
-bool var_buffer::add_int(int value)
+bool buffer_builder::add_int(int value)
 {
 	if (m_read != m_data)
 	{
@@ -73,7 +67,7 @@ bool var_buffer::add_int(int value)
 	return true;
 }
 
-bool var_buffer::add_float(float value)
+bool buffer_builder::add_float(float value)
 {
 	if (m_read != m_data)
 	{
@@ -89,7 +83,7 @@ bool var_buffer::add_float(float value)
 	return true;
 }
 
-bool var_buffer::add_string(const char *value)
+bool buffer_builder::add_string(const char *value)
 {
 	if (m_read != m_data)
 	{
@@ -108,7 +102,7 @@ bool var_buffer::add_string(const char *value)
 	return true;
 }
 
-bool var_buffer::add_bytes(const char *value, int size)
+bool buffer_builder::add_bytes(const char *value, int size)
 {
 	if (m_read != m_data)
 	{
@@ -126,7 +120,7 @@ bool var_buffer::add_bytes(const char *value, int size)
 	return true;
 }
 
-bool var_buffer::add_widestr(const wchar_t *value)
+bool buffer_builder::add_widestr(const wchar_t *value)
 {
 	if (m_read != m_data)
 	{
@@ -145,7 +139,7 @@ bool var_buffer::add_widestr(const wchar_t *value)
 	return true;
 }
 
-int var_buffer::int_() const
+int buffer_builder::int_() const
 {
 	if (m_write - m_read < 4)
 	{
@@ -158,7 +152,7 @@ int var_buffer::int_() const
 	return value;
 }
 
-float var_buffer::float_() const
+float buffer_builder::float_() const
 {
 	if (m_write - m_read < 4)
 	{
@@ -171,7 +165,7 @@ float var_buffer::float_() const
 	return value;
 }
 
-const char* var_buffer::string_(int &len) const
+const char* buffer_builder::string_(int &len) const
 {
 	if (m_write - m_read <= 4)
 	{
@@ -190,7 +184,7 @@ const char* var_buffer::string_(int &len) const
 	return value;
 }
 
-const char* var_buffer::string_() const
+const char* buffer_builder::string_() const
 {
 	if (m_write - m_read <= 4)
 	{
@@ -210,7 +204,7 @@ const char* var_buffer::string_() const
 }
 
 
-const char* var_buffer::bytes_(int& size) const
+const char* buffer_builder::bytes_(int& size) const
 {
 	if (m_write - m_read <= 4)
 	{
@@ -229,30 +223,99 @@ const char* var_buffer::bytes_(int& size) const
 	return value;
 }
 
-const char* var_buffer::data() const
+const wchar_t* buffer_builder::widestr_(int& len) const
 {
-	return m_data;
+	if (m_write - m_read <= 4)
+	{
+		return nullptr;
+	}
+
+	len = ((int*)m_read)[0];
+
+	if (m_write - m_read < 4 + len)
+	{
+		return nullptr;
+	}
+
+	wchar_t* value = (wchar_t*)(m_read += 4);
+	m_read += len;
+	return value;
 }
 
-size_t var_buffer::size() const
+const wchar_t* buffer_builder::widestr_() const
 {
-	return m_write - m_read;
+	if (m_write - m_read <= 4)
+	{
+		return nullptr;
+	}
+
+	int len = ((int*)m_read)[0];
+
+	if (m_write - m_read < 4 + len)
+	{
+		return nullptr;
+	}
+
+	wchar_t* value = (wchar_t*)(m_read += 4);
+	m_read += len;
+	return value;
 }
 
-char* var_buffer::now_data()
+bool buffer_builder::consume_read(int read_len) const
+{
+	if (m_write - m_read < read_len)
+	{
+		return false;
+	}
+
+	m_read += read_len;
+	return true;
+}
+
+bool buffer_builder::consume_write(int write_len) const
+{
+	if (m_write - m_data + write_len > m_capacity)
+	{
+		return false;
+	}
+
+	m_write += write_len;
+	return true;
+}
+
+const char* buffer_builder::readable_data() const
+{
+	return m_read;
+}
+
+char* buffer_builder::writable_data()
 {
 	return m_write;
 }
 
-void var_buffer::flush()
+const char* buffer_builder::full_data() const
+{
+	return m_data;
+}
+
+size_t buffer_builder::readable_size() const
+{
+	return m_write - m_read;
+}
+
+size_t buffer_builder::full_size() const
+{
+	return m_write - m_data;
+}
+
+void buffer_builder::flush()
 {
 	m_write = m_data;
 	m_read = m_data;
 }
 
-bool var_buffer::ensure_capacity(int elementLen)
+bool buffer_builder::ensure_capacity(int elementLen)
 {
-	//如果还有足够的可用空间，则不扩充
 	if (m_write - m_data + elementLen <= m_capacity)
 	{
 		return true;
