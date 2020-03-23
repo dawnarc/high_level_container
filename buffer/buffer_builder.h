@@ -3,7 +3,7 @@
 
 namespace utils
 {
-	class PSWEBSOCKET_API buffer_builder
+	class buffer_builder
 	{
 	public:
 
